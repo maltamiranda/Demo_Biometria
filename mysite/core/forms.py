@@ -4,9 +4,12 @@ from .models import Audio, Funcion, Palabras, Campaña, Reporte
 
 
 class AudioForm(forms.ModelForm):
-	class Meta:
-		model = Audio
-		fields = ('id','file')
+    #a = Agente.objects.get(id=915)
+    #agente = forms.IntegerField(widget=forms.HiddenInput(), initial=915)
+    #campaña = forms.IntegerField(widget=forms.HiddenInput(), initial=98)
+    class Meta:
+        model = Audio
+        fields = ('id','file','idInteraccion','agente','campaña')
 
 class ComentarioAudioForm(forms.ModelForm):
 	class Meta:

@@ -501,3 +501,62 @@ def graficoAgentes(request):
 	return render(request, 'graficos/graficoAgentes.html',
 		{'agentesNombre':agentesNombre,
 		'agentesPromedio':agentesPromedio,'altura':altura})
+
+@login_required
+def upload_audio(request):
+    if request.method == 'POST':
+        form = AudioForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+
+            analizarTest(Audio.objects.last())
+            
+            return redirect('reportes')
+    else:
+        ag = Agente.objects.get(id=916)
+        camp = Campaña.objects.get(id=98)
+        form = AudioForm(initial={'agente':ag,'campaña':camp})
+    return render(request, 'upload_audio.html', {'form':form})
+
+def analizarTest(audio):
+    #Generar transcripcion
+    t = Transcriptor()
+    e = Evaluador()
+    c1, c2 = t.parse(audio.file)
+    ch1 = e.normalizar(c1) 
+    ch2 = e.normalizar(c2)
+    audio.canal_1 = ch1
+    audio.canal_2 = ch2
+    audio.save()
+    #Generar reportes
+    funciones = audio.campaña.fk_funciones.all()
+    for f in funciones:
+        e = Evaluador()
+        suma = e.ponderizar(audio.canal_1.lower(), Palabras.objects.filter(fk_funcion=f))
+        canal_1_resaltado= audio.canal_1
+        canal_1_resaltado = canal_1_resaltado.split(" ")
+        for palabra in Palabras.objects.filter(fk_funcion=f):
+            if palabra.palabra.lower() in canal_1_resaltado:
+                for indice,palabra_Canal_1 in enumerate(canal_1_resaltado):
+                    if palabra.palabra.lower() == palabra_Canal_1:
+                        canal_1_resaltado[indice] = palabra_Canal_1.replace(palabra.palabra.lower(),'<b>'+palabra.palabra.lower()+'</b>')
+        canal_1_resaltado = " ".join(canal_1_resaltado)
+        #analisis = random.randint(0, 100)
+        Reporte.objects.create(ponderacion=suma, 
+                            fk_audio=audio,
+                            fk_funcion=f,
+                            canal_1=canal_1_resaltado,
+                            canal_2=audio.canal_2,
+                            nombre_agente = audio.agente.nombre,
+                            nombre_audio = audio.idInteraccion,
+                            nombre_campaña = audio.campaña.nombre,
+                            fecha_audio = audio.inicio)
+    #Actualizar ponderacion Audio
+    pond = 0.00
+    cant = 0
+    for r in Reporte.objects.filter(fk_audio=audio):
+        pond = pond + r.ponderacion
+        cant += 1
+    if cant != 0:
+        audio.ponderacion = pond/cant
+        audio.save()

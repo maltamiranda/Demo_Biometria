@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
+from datetime import datetime  
 
 
 class Campaña(models.Model):
@@ -17,7 +18,7 @@ class Agente(models.Model):
 
 class Audio(models.Model):
 	file = models.FileField(upload_to='audios/files/',default=None)
-	inicio = models.DateTimeField(default=None)
+	inicio = models.DateTimeField(default=datetime.now())
 	idInteraccion = models.CharField(max_length=60,default=None, unique=True)
 	agente = models.ForeignKey(Agente, related_name='agente', on_delete=models.CASCADE,default=None)
 	campaña = models.ForeignKey(Campaña, related_name='campaña_audio', on_delete=models.CASCADE,default=None)
